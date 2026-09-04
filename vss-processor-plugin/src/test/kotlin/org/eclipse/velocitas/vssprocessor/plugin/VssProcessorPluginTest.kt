@@ -74,7 +74,7 @@ class VssProcessorPluginTest : BehaviorSpec({
                     pluginProject.refresh() // So the plugin project does not have 2 :lib includes
                 }
 
-                `when`("the generateVssModels task is executed without correct input") {
+                and("the generateVssModels task is executed without correct input") {
                     val result = gradleRunner
                         .withArguments(GENERATE_VSS_MODELS_TASK_NAME)
                         .buildAndFail()
@@ -103,7 +103,7 @@ class VssProcessorPluginTest : BehaviorSpec({
 
                 pluginProject.add(vssProcessorProject)
 
-                `when`("the generateVssModels task is executed with build cache the #1 time") {
+                and("the generateVssModels task is executed with build cache the #1 time") {
                     pluginProject.localCacheFolder.deleteRecursively()
 
                     val result = gradleRunner
@@ -119,7 +119,7 @@ class VssProcessorPluginTest : BehaviorSpec({
                     }
                 }
 
-                `when`("the generateVssModels task is executed with build cache the #2 time") {
+                and("the generateVssModels task is executed with build cache the #2 time") {
                     val result = gradleRunner
                         .withArguments("clean", "--build-cache", GENERATE_VSS_MODELS_TASK_NAME)
                         .build()
@@ -133,7 +133,7 @@ class VssProcessorPluginTest : BehaviorSpec({
                     }
                 }
 
-                `when`("the generateVssModels task is executed with build cache the #3 time") {
+                and("the generateVssModels task is executed with build cache the #3 time") {
                     val kspInputDir = vssProcessorProject.buildDir.resolve(KSP_INPUT_BUILD_DIRECTORY)
                     val result = gradleRunner
                         .withArguments("--build-cache", GENERATE_VSS_MODELS_TASK_NAME)
@@ -154,7 +154,7 @@ class VssProcessorPluginTest : BehaviorSpec({
                     }
                 }
 
-                `when`("the input of the generateVssModelsTask changes") {
+                and("the input of the generateVssModelsTask changes") {
                     val projectVssDir2 = vssDir2Path.substringAfter(TEST_FOLDER_NAME_DEFAULT)
                     vssProcessorProject.generate(
                         """
@@ -177,7 +177,7 @@ class VssProcessorPluginTest : BehaviorSpec({
                     }
                 }
 
-                `when`("the name of the input of the generateVssModelsTask changes") {
+                and("the name of the input of the generateVssModelsTask changes") {
                     vssFile2.renameTo(File("$vssDir2Path/vss_rel_4.0_test_renamed.yml"))
                     val result = gradleRunner
                         .withArguments("--build-cache", GENERATE_VSS_MODELS_TASK_NAME)
@@ -199,7 +199,7 @@ class VssProcessorPluginTest : BehaviorSpec({
         private const val VSS_TEST_FILE_NAME = "vss_rel_4.0_test.yaml"
         private const val GENERATE_VSS_MODELS_TASK_NAME = "generateVssModels"
         private const val VSS_TEST_FILE_MINIMAL_NAME = "vss_rel_4.0_test_minimal.yaml"
-        private const val GRADLE_VERSION_TEST = "8.7"
+        private const val GRADLE_VERSION_TEST = "9.7.1"
         private const val KSP_INPUT_BUILD_DIRECTORY = "kspInput"
     }
 }

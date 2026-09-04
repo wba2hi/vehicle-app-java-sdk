@@ -18,7 +18,7 @@ package org.eclipse.velocitas.vssprocessor
 
 import java.io.File
 import com.squareup.kotlinpoet.FileSpec
-import org.eclipse.kuksa.vsscore.model.parentClassName
+import org.eclipse.kuksa.vsscore.model.className
 import org.eclipse.velocitas.vssprocessor.parser.factory.VssParserFactory
 import org.eclipse.velocitas.vssprocessor.spec.VssNodeSpecModel
 import org.eclipse.velocitas.vssprocessor.spec.VssPath
@@ -71,7 +71,6 @@ class VssModelGenerator(
 
         logger.info("Ambiguous VssNode - Generate nested classes: $duplicateNodeNames")
 
-        val generatedFilesVssPathToClassName = mutableMapOf<String, String>()
         for ((vssPath, specModel) in vssPathToVssNode) {
             // Every duplicate is produced as a nested class - No separate file should be generated
             if (duplicateNodeNames.contains(vssPath.leaf)) {
@@ -88,7 +87,7 @@ class VssModelGenerator(
             val className = classSpec.name ?: throw NoSuchFieldException("Class spec $classSpec has no name field!")
             val fileSpecBuilder = FileSpec.builder(packageName, className)
 
-            val parentImport = buildParentImport(specModel, generatedFilesVssPathToClassName)
+            val parentImport = buildParentImport(specModel, vssPathToVssNode, duplicateNodeNames)
             if (parentImport.isNotEmpty()) {
                 fileSpecBuilder.addImport(packageName, parentImport)
             }
@@ -99,41 +98,44 @@ class VssModelGenerator(
 
             outputDir.mkdirs()
             outputDir.resolve(file.name + ".kt").writeText(file.toString())
-
-            generatedFilesVssPathToClassName[vssPath.path] = className
         }
     }
 
-    // Uses a map of vssPaths to ClassNames which are validated if it contains a parent of the given specModel.
-    // If the actual parent is a sub class (Driver) in another class file (e.g. Vehicle) then this method returns
-    // a sub import e.g. "Vehicle.Driver". Otherwise just "Vehicle" is returned.
+    // Uses a map of vssPaths to specModels which are validated if it contains a parent of the given specModel.
     private fun buildParentImport(
         specModel: VssNodeSpecModel,
-        parentVssPathToClassName: Map<String, String>,
+        vssPathToVssNode: Map<VssPath, VssNodeSpecModel>,
+        duplicateNodeNames: Collection<String>,
     ): String {
-        var availableParentVssPath = specModel.vssPath
-        var parentSpecClassName: String? = null
-
-        // Iterate up from the parent until the actual file name = class name was found. This indicates
-        // that the actual parent is a sub class in this file.
-        while (availableParentVssPath.contains(".")) {
-            availableParentVssPath = availableParentVssPath.substringBeforeLast(".")
-
-            parentSpecClassName = parentVssPathToClassName[availableParentVssPath]
-            if (parentSpecClassName != null) break
+        if (!specModel.vssPath.contains(".")) {
+            return ""
         }
 
-        if (parentSpecClassName == null) {
+        val parentClassNames = mutableListOf<String>()
+        var currentVssPath = specModel.vssPath.substringBeforeLast(".")
+
+        while (currentVssPath.isNotEmpty()) {
+            val node = vssPathToVssNode[VssPath(currentVssPath)]
+            val className = node?.className
+                ?: ("Vss" + currentVssPath.substringAfterLast(".").replaceFirstChar { it.uppercase() })
+            parentClassNames.add(0, className)
+
+            val leaf = currentVssPath.substringAfterLast(".")
+            if (!duplicateNodeNames.contains(leaf)) {
+                break
+            }
+
+            if (!currentVssPath.contains(".")) {
+                break
+            }
+            currentVssPath = currentVssPath.substringBeforeLast(".")
+        }
+
+        if (parentClassNames.isEmpty()) {
             logger.info("Could not create import string for: ${specModel.vssPath} - No parent was found")
             return ""
         }
 
-        val parentClassName = specModel.parentClassName
-
-        return if (parentSpecClassName != parentClassName) {
-            "$parentSpecClassName.$parentClassName" // Sub class in another file
-        } else {
-            parentClassName // Main class = File name
-        }
+        return parentClassNames.joinToString(".")
     }
 }

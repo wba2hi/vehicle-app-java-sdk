@@ -27,7 +27,7 @@ class MiddlewareTest : BehaviorSpec({
 
     val middlewareFactory = MiddlewareFactory()
 
-    context("Middleware.getInstance() returns NativeMiddleware per default") {
+    given("Middleware.getInstance() returns NativeMiddleware per default") {
         `when`("Retrieving the typeId of the Middleware") {
             val middleware = middlewareFactory.create()
             val typeId = middleware.typeId
@@ -38,8 +38,8 @@ class MiddlewareTest : BehaviorSpec({
         }
     }
 
-    context("Middleware.getInstance() returns NativeMiddleware") {
-        given("EnvVar '${MiddlewareFactory.TYPE_DEFINING_ENV_VAR_NAME}' is set to '${NativeMiddleware.TYPE_ID}'") {
+    given("Middleware.getInstance() returns NativeMiddleware") {
+        and("EnvVar '${MiddlewareFactory.TYPE_DEFINING_ENV_VAR_NAME}' is set to '${NativeMiddleware.TYPE_ID}'") {
             withEnvironment(key = MiddlewareFactory.TYPE_DEFINING_ENV_VAR_NAME, NativeMiddleware.TYPE_ID) {
                 `when`("Retrieving the Middleware") {
                     val middleware = middlewareFactory.create()
@@ -53,8 +53,8 @@ class MiddlewareTest : BehaviorSpec({
         }
     }
 
-    context("Middleware.getInstance() throws an Exception when an unknown Middleware is set") {
-        given("EnvVar '${MiddlewareFactory.TYPE_DEFINING_ENV_VAR_NAME}' is set to 'unknown'") {
+    given("Middleware.getInstance() throws an Exception when an unknown Middleware is set") {
+        and("EnvVar '${MiddlewareFactory.TYPE_DEFINING_ENV_VAR_NAME}' is set to 'unknown'") {
             withEnvironment(key = MiddlewareFactory.TYPE_DEFINING_ENV_VAR_NAME, value = "unknown") {
                 `when`("Retrieving the Middleware") {
                     val result = runCatching {

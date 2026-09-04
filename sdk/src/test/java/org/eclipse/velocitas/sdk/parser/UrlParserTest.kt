@@ -23,7 +23,7 @@ import org.eclipse.velocitas.kotest.Unit
 class UrlParserTest : BehaviorSpec({
     tags(Unit)
 
-    context("Parsing NetLocation and Scheme") {
+    given("Parsing NetLocation and Scheme") {
         val urlParser = UrlParser()
 
         `when`("Parsing 'http://username:password@hostname:portnumber/path'") {

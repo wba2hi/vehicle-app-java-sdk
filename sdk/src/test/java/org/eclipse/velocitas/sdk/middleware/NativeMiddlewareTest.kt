@@ -27,9 +27,9 @@ class NativeMiddlewareTest : BehaviorSpec({
 
     val classUnderTest = NativeMiddleware()
 
-    context("Resolving the ServiceLocation") {
-        withEnvironment("SDV_TESTSERVICE_ADDRESS", "localhost:12345") {
-            `when`("Trying to resolve a well-defined service") {
+    given("Resolving the ServiceLocation") {
+        `when`("Trying to resolve a well-defined service") {
+            withEnvironment("SDV_TESTSERVICE_ADDRESS", "localhost:12345") {
                 val lcServiceLocation = classUnderTest.findServiceLocation("testservice")
                 val ucServiceLocation = classUnderTest.findServiceLocation("TESTSERVICE")
 
@@ -59,22 +59,28 @@ class NativeMiddlewareTest : BehaviorSpec({
         }
 
         `when`("Trying to resolve a Service defined by envVar with pure address") {
-            withEnvironment(key = "SDV_SOMESERVICE_ADDRESS", value = "some-service-address") {
-                val serviceLocation = classUnderTest.findServiceLocation("someservice")
+            val serviceLocation = withEnvironment(
+                key = "SDV_SOMESERVICE_ADDRESS",
+                value = "some-service-address",
+            ) {
+                classUnderTest.findServiceLocation("someservice")
+            }
 
-                then("It should resolve to the content of the envVar") {
-                    serviceLocation shouldBe "some-service-address"
-                }
+            then("It should resolve to the content of the envVar") {
+                serviceLocation shouldBe "some-service-address"
             }
         }
 
         `when`("Trying to resolve a Service defined by envVar with URL") {
-            withEnvironment(key = "SDV_SOMESERVICE_ADDRESS", value = "scheme://some-host:port/path") {
-                val serviceLocation = classUnderTest.findServiceLocation("someservice")
+            val serviceLocation = withEnvironment(
+                key = "SDV_SOMESERVICE_ADDRESS",
+                value = "scheme://some-host:port/path",
+            ) {
+                classUnderTest.findServiceLocation("someservice")
+            }
 
-                then("It should resolve to the netLocation of the URL") {
-                    serviceLocation shouldBe "some-host:port"
-                }
+            then("It should resolve to the netLocation of the URL") {
+                serviceLocation shouldBe "some-host:port"
             }
         }
 

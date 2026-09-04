@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.eclipse.velocitas.vss-processor-plugin") // version <VERSION>
 }
 
@@ -10,24 +9,27 @@ vssProcessor {
 
 android {
     namespace = "com.example.android.app"
-    compileSdk = 34
+    compileSdk = 37
 
     defaultConfig {
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 26
+        targetSdk = 37
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "11"
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
 dependencies {
     implementation(project(":sdk"))
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation(libs.kotlinx.coroutines.android)
 }

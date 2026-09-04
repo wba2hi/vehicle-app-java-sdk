@@ -94,11 +94,11 @@ tasks.withType<Detekt>().configureEach {
     include("**/*.kt", "**/*.kts")
     exclude("**/resources/**", "**/build/**", "**/node_modules/**", "**/cache/**")
 
-    jvmTarget = "1.8"
+    jvmTarget = "17"
 }
 
 tasks.withType<DetektCreateBaselineTask>().configureEach {
-    jvmTarget = "1.8"
+    jvmTarget = "17"
 
     setSource(projectDir)
     include("**/*.kt", "**/*.kts")
@@ -106,10 +106,10 @@ tasks.withType<DetektCreateBaselineTask>().configureEach {
 }
 
 tasks.withType<Detekt>().configureEach {
-    jvmTarget = "1.8"
+    jvmTarget = "17"
 }
 tasks.withType<DetektCreateBaselineTask>().configureEach {
-    jvmTarget = "1.8"
+    jvmTarget = "17"
 }
 
 subprojects {
@@ -121,12 +121,14 @@ subprojects {
     }
 
     // see: https://kotest.io/docs/framework/tags.html#gradle
-    tasks.withType<Test> {
+    tasks.withType<Test>().configureEach {
         val systemPropertiesMap = HashMap<String, Any>()
-        System.getProperties().forEach { key, value ->
+        System.getProperties().forEach { (key, value) ->
             systemPropertiesMap[key.toString()] = value.toString()
         }
         systemProperties = systemPropertiesMap
+
+        failOnNoDiscoveredTests = false
     }
 
     // https://docs.gradle.org/current/userguide/dependency_locking.html
@@ -138,6 +140,7 @@ subprojects {
 
 @OptIn(ExperimentalPathApi::class)
 tasks.register("mergeDashFiles") {
+    description = "Merges Dash Files"
     group = "oss"
 
     dependsOn(
@@ -176,4 +179,59 @@ tasks.register("mergeDashFiles") {
             }
         }
     }
+}
+
+// Resolve and lock all configurations of all submodules.
+// Each subproject resolves its own configurations to avoid cross-project locking violations
+// when Gradle parallel execution is enabled (org.gradle.parallel=true).
+// https://docs.gradle.org/current/userguide/dependency_locking.html
+val resolveAndLockAllSubprojects = subprojects.map { subproject ->
+    subproject.tasks.register("resolveAndLockAll") {
+        group = "dependency locking"
+        description =
+            "Resolves and locks all configurations of ${subproject.name}. Must be run with the --write-locks flag."
+
+        notCompatibleWithConfigurationCache("Filters configurations at execution time")
+        doFirst {
+            require(gradle.startParameter.isWriteDependencyLocks) {
+                "$path must be run from the command line with the `--write-locks` flag"
+            }
+        }
+        doLast {
+            subproject.configurations
+                .filter { it.isCanBeResolved }
+                .forEach { config ->
+                    try {
+                        config.resolve()
+                    } catch (e: ResolveException) {
+                        logger.info("Skipping resolution for configuration '${config.name}': ${e.message}")
+                    }
+                }
+        }
+    }
+}
+
+tasks.register("resolveAndLockAll") {
+    group = "dependency locking"
+    description = "Resolves and locks all configurations of all submodules. Must be run with the --write-locks flag."
+
+    notCompatibleWithConfigurationCache("Filters configurations at execution time")
+    doFirst {
+        require(gradle.startParameter.isWriteDependencyLocks) {
+            "$path must be run from the command line with the `--write-locks` flag"
+        }
+    }
+    // Also resolve root project configurations
+    doLast {
+        configurations
+            .filter { it.isCanBeResolved }
+            .forEach { config ->
+                try {
+                    config.resolve()
+                } catch (e: ResolveException) {
+                    logger.info("Skipping resolution for configuration '${config.name}': ${e.message}")
+                }
+            }
+    }
+    dependsOn(resolveAndLockAllSubprojects)
 }

@@ -120,6 +120,18 @@ class YamlVssParserTest : BehaviorSpec({
             }
         }
 
+        and("a VSS file of version 6.0") {
+            val fullSpecificationFile = TestResourceFile("yaml/vss_rel_6.0.yaml")
+
+            `when`("parsing the file") {
+                val parsedSpecifications = parser.parseNodes(fullSpecificationFile)
+
+                then("the correct number of VSS models should be parsed") {
+                    parsedSpecifications.size shouldBe 1607
+                }
+            }
+        }
+
         and("a VSS file of version 4.1") {
             val fullSpecificationFile = TestResourceFile("yaml/vss_rel_4.1.yaml")
 

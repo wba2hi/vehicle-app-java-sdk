@@ -19,7 +19,7 @@ package com.example.java.lib
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import io.grpc.ManagedChannelBuilder
-import org.eclipse.kuksa.connectivity.databroker.v1.DataBrokerConnector
+import org.eclipse.kuksa.connectivity.databroker.DataBrokerConnector
 import org.eclipse.kuksa.connectivity.databroker.v1.listener.VssNodeListener
 import org.eclipse.kuksa.connectivity.databroker.v1.listener.VssPathListener
 import org.eclipse.kuksa.connectivity.databroker.v1.request.FetchRequest
@@ -28,7 +28,6 @@ import org.eclipse.kuksa.connectivity.databroker.v1.request.UpdateRequest
 import org.eclipse.kuksa.connectivity.databroker.v1.request.VssNodeFetchRequest
 import org.eclipse.kuksa.connectivity.databroker.v1.request.VssNodeSubscribeRequest
 import org.eclipse.kuksa.connectivity.databroker.v1.request.VssNodeUpdateRequest
-import org.eclipse.kuksa.connectivity.databroker.v2.DataBrokerConnectorV2
 import org.eclipse.kuksa.connectivity.databroker.v2.request.FetchValueRequestV2
 import org.eclipse.kuksa.connectivity.databroker.v2.request.PublishValueRequestV2
 import org.eclipse.kuksa.connectivity.databroker.v2.request.SubscribeRequestV2
@@ -56,7 +55,7 @@ class SampleLib {
             .build()
         val dataBrokerConnector = DataBrokerConnector(managedChannel)
 
-        val dataBrokerConnection = dataBrokerConnector.connect()
+        val dataBrokerConnection = dataBrokerConnector.connect().kuksaValV1
 
         println("Using protocol kuksa.val.v1 with VehicleModel")
         println("Setting Vehicle.Speed in Databroker to 100")
@@ -94,7 +93,7 @@ class SampleLib {
             .build()
         val dataBrokerConnector = DataBrokerConnector(managedChannel)
 
-        val dataBrokerConnection = dataBrokerConnector.connect()
+        val dataBrokerConnection = dataBrokerConnector.connect().kuksaValV1
 
         println("Using protocol kuksa.val.v1")
         println("Setting Vehicle.Speed in Databroker to 80")
@@ -134,9 +133,9 @@ class SampleLib {
         val managedChannel = ManagedChannelBuilder.forAddress("localhost", 55556)
             .usePlaintext()
             .build()
-        val dataBrokerConnector = DataBrokerConnectorV2(managedChannel)
+        val dataBrokerConnector = DataBrokerConnector(managedChannel)
 
-        val dataBrokerConnection = dataBrokerConnector.connect()
+        val dataBrokerConnection = dataBrokerConnector.connect().kuksaValV2
 
         println("Using protocol kuksa.val.v2")
         println("Setting Vehicle.Speed in Databroker to 60")

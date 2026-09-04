@@ -19,10 +19,9 @@
 
 package org.eclipse.velocitas.vssprocessor.plugin
 
-import java.io.File
 import javax.inject.Inject
+import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
-import com.android.build.gradle.AppExtension
 import com.android.build.gradle.tasks.ExtractAnnotations
 import org.eclipse.velocitas.vssprocessor.VssModelGenerator
 import org.gradle.api.DefaultTask
@@ -30,7 +29,6 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.FileType
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
@@ -45,9 +43,6 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.register
-import org.gradle.work.ChangeType
-import org.gradle.work.Incremental
-import org.gradle.work.InputChanges
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 open class VssProcessorPluginExtension
@@ -64,6 +59,7 @@ internal constructor(objectFactory: ObjectFactory) {
  * This Plugin searches for compatible VSS files, generates VSS Model classes and copies them into an output folder
  * which is added as a main sourceSet.
  */
+@Suppress("unused") // Used as a Plugin entry point by Gradle
 class VssProcessorPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extensions = project.extensions
@@ -88,8 +84,20 @@ class VssProcessorPlugin : Plugin<Project> {
                 generatedOutputDir.set(sourceSetBaseDirProperty)
             }
 
+            // Android build lifecycle
+            tasks.matching { it.name == "preBuild" }.configureEach {
+                dependsOn(generateVssModelsTask)
+            }
+
+            // IDE Gradle Sync integration (automatically generates on Gradle Sync)
+            tasks.matching { it.name == "prepareKotlinIdeaImport" }.configureEach {
+                dependsOn(generateVssModelsTask)
+            }
+
+            // Kotlin / Java compilation
             tasks.withType(KotlinCompile::class.java).configureEach {
                 dependsOn(generateVssModelsTask.get())
+                source(sourceSetBaseDirProperty)
             }
             tasks.withType(JavaCompile::class.java).configureEach {
                 dependsOn(generateVssModelsTask.get())
@@ -101,12 +109,12 @@ class VssProcessorPlugin : Plugin<Project> {
     }
 
     private fun Project.readVssDir(vssProcessorExtension: VssProcessorPluginExtension): DirectoryProperty {
-        val defaultVssPath = File(rootDir, VSS_FOLDER_NAME)
-        val vssPath = vssProcessorExtension.searchPath.get().ifEmpty { defaultVssPath.absolutePath }
-        val vssDir = File(vssPath)
-
         val vssDirProperty = project.objects.directoryProperty()
-        vssDirProperty.set(vssDir)
+        val vssDirProvider = vssProcessorExtension.searchPath.map { path ->
+            val vssPath = path.ifEmpty { VSS_FOLDER_NAME }
+            file(vssPath)
+        }
+        vssDirProperty.fileProvider(vssDirProvider)
         return vssDirProperty
     }
 
@@ -121,14 +129,16 @@ class VssProcessorPlugin : Plugin<Project> {
         val isAndroidLibrary = pluginManager.hasPlugin(PLUGIN_ID_ANDROID_LIBRARY)
         val isJavaProject = javaPlugins.any { pluginManager.hasPlugin(it) }
 
+        val dirPath = sourceSetBaseDirProperty.asFile.get().absolutePath
+
         if (isAndroidApplication) {
-            val androidExtension = extensions.getByType(AppExtension::class.java)
+            val androidExtension = extensions.getByType(ApplicationExtension::class.java)
             val mainSourceSet = androidExtension.sourceSets.named(SOURCESET_MAIN_NAME).get()
-            mainSourceSet.java.srcDirs(sourceSetBaseDirProperty)
+            mainSourceSet.kotlin.directories.add(dirPath)
         } else if (isAndroidLibrary) {
             val androidExtension = extensions.getByType(LibraryExtension::class.java)
             val mainSourceSet = androidExtension.sourceSets.named(SOURCESET_MAIN_NAME).get()
-            mainSourceSet.java.srcDirs(sourceSetBaseDirProperty)
+            mainSourceSet.kotlin.directories.add(dirPath)
         } else if (isJavaProject) {
             val sourceSets = extensions.getByType(SourceSetContainer::class.java)
             val mainSourceSet = sourceSets.named(SOURCESET_MAIN_NAME).get()
@@ -158,7 +168,6 @@ class VssProcessorPlugin : Plugin<Project> {
  */
 @CacheableTask
 private abstract class GenerateVssModelsTask : DefaultTask() {
-    @get:Incremental
     @get:IgnoreEmptyDirectories
     @get:PathSensitive(PathSensitivity.NAME_ONLY)
     @get:InputDirectory
@@ -171,45 +180,22 @@ private abstract class GenerateVssModelsTask : DefaultTask() {
     lateinit var vssModelGenerator: VssModelGenerator
 
     @TaskAction
-    fun provideFile(inputChanges: InputChanges) {
-        inputChanges.getFileChanges(vssDir).forEach { change ->
-            if (change.fileType == FileType.DIRECTORY) return@forEach
+    fun generate() {
+        val outputDir = generatedOutputDir.asFile.get()
+        outputDir.deleteRecursively()
+        outputDir.mkdirs()
 
-            val file = change.file
-            val extension = file.extension
-            if (!validVssExtension.contains(extension)) {
-                logger.warn("Found incompatible VSS file: ${file.name} - Consider removing it")
-                return@forEach
-            }
+        val vssFiles = vssDir.asFile.get()
+            .walk()
+            .filter { it.isFile }
+            .filter { validVssExtension.contains(it.extension) }
+            .toSet()
 
-            val targetFile = generatedOutputDir.file(change.normalizedPath).get().asFile
-            logger.info("Found VSS file changes for: ${targetFile.name}, change: ${change.changeType}")
-
-            when (change.changeType) {
-                ChangeType.ADDED,
-                ChangeType.MODIFIED,
-                -> {
-                    val outputDir = generatedOutputDir.asFile.get()
-                    outputDir.deleteRecursively()
-                    outputDir.mkdirs()
-
-                    val vssFiles = vssDir.asFile.get()
-                        .walk()
-                        .filter { it.isFile }
-                        .filter { validVssExtension.contains(it.extension) }
-                        .toSet()
-                    if (vssFiles.isEmpty()) {
-                        logger.error("No VSS files were found! Is the plugin correctly configured?")
-                        return@forEach
-                    }
-
-                    vssModelGenerator.generate(vssFiles)
-                }
-
-                ChangeType.REMOVED -> generatedOutputDir.asFile.get().deleteRecursively()
-                else -> logger.warn("Could not determine file change type: ${change.changeType}")
-            }
+        vssFiles.forEach { file ->
+            logger.info("Found VSS file: ${file.name}")
         }
+
+        vssModelGenerator.generate(vssFiles)
     }
 
     companion object {
