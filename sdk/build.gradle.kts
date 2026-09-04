@@ -39,7 +39,7 @@ publish {
 }
 
 tasks.register("javadocJar", Jar::class) {
-    dependsOn("dokkaHtml")
+    dependsOn("dokkaGeneratePublicationHtml")
 
     val buildDir = layout.buildDirectory.get()
     from("$buildDir/dokka/html")

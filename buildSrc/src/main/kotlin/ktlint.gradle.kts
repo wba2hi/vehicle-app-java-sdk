@@ -17,7 +17,7 @@
  *
  */
 
-val ktlint by configurations.creating
+val ktlint = configurations.create("ktlint")
 
 dependencies {
     ktlint("com.pinterest:ktlint:0.49.0") {
@@ -27,7 +27,7 @@ dependencies {
     }
 }
 
-val ktlintCheck by tasks.registering(JavaExec::class) {
+val ktlintCheck = tasks.register<JavaExec>("ktlintCheck") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     description = "Check Kotlin code style"
     classpath = ktlint
