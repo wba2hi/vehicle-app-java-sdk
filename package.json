@@ -11,7 +11,7 @@
     "husky": "^9.1.7"
   },
   "scripts": {
-    "postinstall": "husky install",
+    "postinstall": "husky",
     "tag-release": "npx commit-and-tag-version --packageFiles version.txt -t release/v --skip.commit=true --skip.changelog=true --skip.bump=true",
     "commit-release": "npx commit-and-tag-version --packageFiles version.txt -t release/v --bumpFiles version.txt --skip.tag=true", 
     "bump-release": "npx commit-and-tag-version --packageFiles version.txt -t release/v --bumpFiles version.txt --skip.tag=true --skip.commit=true",
