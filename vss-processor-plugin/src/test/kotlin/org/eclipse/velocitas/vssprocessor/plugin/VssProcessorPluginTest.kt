@@ -18,6 +18,7 @@ package org.eclipse.velocitas.vssprocessor.plugin
 
 import java.io.File
 import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.exists
 import kotlin.io.path.pathString
@@ -191,6 +192,65 @@ class VssProcessorPluginTest : BehaviorSpec({
                         outcome shouldBe TaskOutcome.SUCCESS
                     }
                 }
+            }
+        }
+    }
+    given("A java library project with no VSS files in the configured directory") {
+        tags(Functional)
+
+        val tempDir = createTempDirectory("empty_vss_test")
+        val emptyVssDir = tempDir.resolve("vss-empty").also { it.toFile().mkdirs() }
+        val libDir = tempDir.resolve("lib").also { it.toFile().mkdirs() }
+
+        tempDir.resolve("settings.gradle.kts").toFile().writeText(
+            """
+            pluginManagement {
+                includeBuild("${System.getProperty("user.dir")}")
+                repositories {
+                    gradlePluginPortal()
+                    mavenCentral()
+                }
+            }
+            dependencyResolutionManagement {
+                repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+                repositories {
+                    mavenLocal()
+                    mavenCentral()
+                }
+            }
+            include(":lib")
+            """.trimIndent(),
+        )
+
+        tempDir.resolve("build.gradle.kts").toFile().writeText("")
+
+        libDir.resolve("build.gradle.kts").toFile().writeText(
+            """
+            plugins {
+                id("java-library")
+                id("org.eclipse.velocitas.vss-processor-plugin")
+            }
+            vssProcessor {
+                searchPath = "${emptyVssDir.toAbsolutePath()}"
+            }
+            """.trimIndent(),
+        )
+
+        val emptyVssDirRunner = GradleRunner.create()
+            .forwardOutput()
+            .withGradleVersion(GRADLE_VERSION_TEST)
+            .withPluginClasspath()
+            .withProjectDir(tempDir.toFile())
+
+        afterSpec { tempDir.toFile().deleteRecursively() }
+
+        `when`("the generateVssModels task is executed") {
+            val result = emptyVssDirRunner
+                .withArguments(":lib:generateVssModels")
+                .buildAndFail()
+
+            then("the build fails with a descriptive error") {
+                result.output shouldContain "No VSS files found"
             }
         }
     }

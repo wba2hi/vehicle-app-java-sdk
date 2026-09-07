@@ -185,11 +185,19 @@ private abstract class GenerateVssModelsTask : DefaultTask() {
         outputDir.deleteRecursively()
         outputDir.mkdirs()
 
-        val vssFiles = vssDir.asFile.get()
+        val vssSpecDir = vssDir.asFile.get()
+        val vssFiles = vssSpecDir
             .walk()
             .filter { it.isFile }
             .filter { validVssExtension.contains(it.extension) }
             .toSet()
+
+        if (vssFiles.isEmpty()) {
+            val vssSpecDirPath = vssSpecDir.absolutePath
+            throw GradleException(
+                "No VSS files found in '$vssSpecDirPath'. Is the plugin correctly configured?",
+            )
+        }
 
         vssFiles.forEach { file ->
             logger.info("Found VSS file: ${file.name}")
