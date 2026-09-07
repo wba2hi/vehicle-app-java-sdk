@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.1.3](https://github.com/eclipse-velocitas/vehicle-app-java-sdk/compare/release/v0.1.2...release/v0.1.3) (2026-09-07)
+
+### Improvements
+
+* Dependency Updates to latest version
+* Minimum JDK increased 17 Support
+
+### Bug Fixes
+
+* Support for VSS Spec 6.0
+
 ## [0.1.2](https://github.com/eclipse-velocitas/vehicle-app-java-sdk/compare/release/v0.1.1...release/v0.1.2) (2025-03-04)
 
 
