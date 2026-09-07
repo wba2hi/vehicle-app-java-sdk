@@ -4,6 +4,12 @@ Vehicle App Java SDK
 
 This project is in incubation status. Not all required functionality might be migrated yet.
 
+> [!IMPORTANT]
+> **AI Usage Notice**
+>
+> This repository partially contains AI-generated code using GitHub Copilot Business.
+> This notice must remain attached to any reproduction of this repository.
+
 ## Overview
 
 The Velocitas Vehicle App Java SDK provides functionality to ease the implementation of Automotive
