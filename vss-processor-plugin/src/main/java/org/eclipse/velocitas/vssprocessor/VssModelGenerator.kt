@@ -101,6 +101,7 @@ class VssModelGenerator(
         }
     }
 
+    @Suppress("LoopWithTooManyJumpStatements") // needs to be refactored to be more readable
     // Uses a map of vssPaths to specModels which are validated if it contains a parent of the given specModel.
     private fun buildParentImport(
         specModel: VssNodeSpecModel,
