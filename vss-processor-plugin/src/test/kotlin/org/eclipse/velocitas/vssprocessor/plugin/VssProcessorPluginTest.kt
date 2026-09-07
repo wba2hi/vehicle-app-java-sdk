@@ -196,7 +196,6 @@ class VssProcessorPluginTest : BehaviorSpec({
         }
     }
     given("A java library project with no VSS files in the configured directory") {
-        tags(Functional)
 
         val tempDir = createTempDirectory("empty_vss_test")
         val emptyVssDir = tempDir.resolve("vss-empty").also { it.toFile().mkdirs() }
