@@ -22,5 +22,5 @@ tasks.register<Exec>("createDashFile") {
 
     workingDir("$rootDir")
     commandLine("buildscripts/dash.sh")
-    args(project.name)
+    args(project.path)
 }
